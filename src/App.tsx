@@ -2,6 +2,7 @@ import { useEffect, useCallback, useState, useRef } from "react";
 import * as d3 from "d3";
 import { Eye, KeyRound, Shell, Users } from "lucide-react";
 import confetti from "canvas-confetti";
+import { Participant } from "@/types/app.type";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -15,12 +16,6 @@ import winnerAudio from "@/assets/win-sound.mp3";
 import supabase from "@/utils/supabase";
 
 // =============== Types ===============
-interface Participant {
-  id: number;
-  name: string;
-  created_at?: string;
-  selected_at?: string;
-}
 
 interface SpinState {
   isSpinning: boolean;

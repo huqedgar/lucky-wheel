@@ -1,4 +1,4 @@
-import { Participant } from "@/App";
+import { Participant } from "@/types/app.type";
 import {
   Dialog,
   DialogContent,
