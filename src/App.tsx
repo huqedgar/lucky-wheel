@@ -1,25 +1,19 @@
 import { useEffect, useCallback, useState, useRef } from "react";
 import * as d3 from "d3";
-import { Shell } from "lucide-react";
+import { Eye, KeyRound, Shell } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
+import WinnerModal from "@/components/winner-modal";
+import GrandPrizeModal from "@/components/grand-prize-modal";
+import HostModal from "@/components/host-modal";
 import spinningAudio from "@/assets/spin-sound.mp3";
 import winnerAudio from "@/assets/win-sound.mp3";
 
-interface Participant {
-  id: number;
-  name: string;
-  selectedAt?: Date;
-}
-
+// Constants
 const PADDING = { top: 20, right: 20, bottom: 20, left: 20 };
 const WHEEL_SIZE = 576;
 const WIDTH = WHEEL_SIZE - PADDING.left - PADDING.right;
@@ -29,7 +23,18 @@ const MINDURATION = 8000;
 const MAXDURATION = 12000;
 const COLORS = ["#e5dff6", "#e5f6df", "#dfe5f6", "#ebd4f3", "#f6f0df"];
 
+// Types
+export interface Participant {
+  id: number;
+  name: string;
+  selectedAt?: Date;
+}
+
 const WheelComponent = () => {
+  // State Management
+  const [showHostModal, setShowHostModal] = useState(false);
+  const [hostCode, setHostCode] = useState("");
+  const [isHostMode, setIsHostMode] = useState(false);
   const [showExcludeInput, setShowExcludeInput] = useState(false);
   const [excludedName, setExcludedName] = useState("");
   const [participantInput, setParticipantInput] = useState("");
@@ -45,15 +50,14 @@ const WheelComponent = () => {
   const [showGrandPrizeModal, setShowGrandPrizeModal] = useState(false);
   const [currentWinner, setCurrentWinner] = useState<Participant | null>(null);
 
-  // Sound references
+  // Audio Refs
   const spinningSound = useRef<HTMLAudioElement | null>(null);
   const winSound = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize audio elements
+  // Audio Setup
   useEffect(() => {
     spinningSound.current = new Audio(spinningAudio);
     spinningSound.current.loop = true;
-
     winSound.current = new Audio(winnerAudio);
 
     return () => {
@@ -68,12 +72,22 @@ const WheelComponent = () => {
     };
   }, []);
 
+  // Utility Functions
   const getRandomInt = useCallback((min: number, max: number): number => {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min)) + min;
   }, []);
 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
+
+  // Animation Functions
   const triggerConfetti = () => {
     const duration = 3000;
     const defaults = {
@@ -87,13 +101,11 @@ const WheelComponent = () => {
       return Math.random() * (max - min) + min;
     }
 
-    // Play win sound
     if (winSound.current) {
       winSound.current.currentTime = 0;
       winSound.current.play();
     }
 
-    // Initial burst
     confetti({
       ...defaults,
       particleCount: 100,
@@ -102,13 +114,11 @@ const WheelComponent = () => {
 
     const interval = setInterval(() => {
       const timeLeft = duration - Date.now();
-
       if (timeLeft <= 0) {
         return clearInterval(interval);
       }
 
       const particleCount = 50;
-
       confetti({
         ...defaults,
         particleCount,
@@ -122,6 +132,7 @@ const WheelComponent = () => {
     }, 250);
   };
 
+  // Participant Management
   const handleParticipantInput = () => {
     const names = participantInput.split("\n").filter((name) => name.trim());
     const newParticipants = names.map((name, index) => ({
@@ -133,6 +144,7 @@ const WheelComponent = () => {
     setResult("");
   };
 
+  // Wheel Rendering and Spinning
   const renderWheel = useCallback(() => {
     d3.select("#chart").select("svg").remove();
 
@@ -197,11 +209,10 @@ const WheelComponent = () => {
 
     const spin = () => {
       if (availableParticipants.length <= 1) {
-        alert("Cần ít nhất 2 người để quay");
+        toast.warning("Cần ít nhất 2 người để quay");
         return;
       }
 
-      // Start spinning sound
       if (spinningSound.current) {
         spinningSound.current.currentTime = 0;
         spinningSound.current.play();
@@ -232,7 +243,6 @@ const WheelComponent = () => {
         })
         .ease(d3.easeCircleOut)
         .on("end", () => {
-          // Stop spinning sound
           if (spinningSound.current) {
             spinningSound.current.pause();
             spinningSound.current.currentTime = 0;
@@ -244,7 +254,6 @@ const WheelComponent = () => {
           };
           setResult(selectedParticipant.name);
           setCurrentWinner(selectedParticipant);
-
           setShowWinnerModal(true);
           triggerConfetti();
 
@@ -265,196 +274,162 @@ const WheelComponent = () => {
     }
   }, [renderWheel, availableParticipants]);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  };
-
-  const handleGrandPrize = () => {
-    if (winSound.current) {
-      winSound.current.currentTime = 0;
-      winSound.current.play();
-    }
-    triggerConfetti();
-  };
-
   return (
-    <div className="flex h-screen w-screen font-bangers">
-      {/* Left side - Wheel and Exclude Input */}
-      <div className="relative flex w-1/2 flex-col items-center justify-center border-r border-gray-200">
-        <div
-          className="absolute left-4 top-4 z-20"
-          onMouseEnter={() => setShowExcludeInput(true)}
-          onMouseLeave={() => setShowExcludeInput(false)}
-        >
+    <>
+      <div className="flex h-screen w-screen font-bangers">
+        <div className="relative flex w-1/2 flex-col items-center justify-center border-r border-gray-200">
           <div
-            className={`transition-all duration-300 ${
-              showExcludeInput ? "opacity-100" : "opacity-0"
-            }`}
+            className="absolute left-4 top-4 z-20"
+            onMouseEnter={() => setShowExcludeInput(true)}
+            onMouseLeave={() => setShowExcludeInput(false)}
           >
-            <Input
-              type="text"
-              placeholder="Nhập tên người cần tránh"
-              value={excludedName}
-              onChange={(e) => setExcludedName(e.target.value)}
-              className="w-64"
+            <div
+              className={`transition-all duration-300 ${
+                showExcludeInput ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <Input
+                type="text"
+                placeholder="Nhập tên người cần tránh"
+                value={excludedName}
+                onChange={(e) => setExcludedName(e.target.value)}
+                className="w-64"
+              />
+            </div>
+          </div>
+
+          <div className="relative">
+            <button
+              id="push"
+              className="group absolute left-1/2 top-1/2 z-10 h-[120px] w-[120px] -translate-x-1/2 -translate-y-1/2 transform"
+            >
+              <div className="absolute left-0 top-0 h-[100px] w-[100px] transform rounded-full border border-black bg-white transition-transform duration-200 ease-linear group-hover:translate-x-1 group-hover:translate-y-1 group-active:hidden">
+                <Shell className="absolute left-[calc(50%-20px)] top-[calc(50%-20px)] h-[40px] w-[40px] text-[#380f0f]" />
+              </div>
+              <div className="absolute left-2 top-2 z-[-1] h-[100px] w-[100px] rounded-full border border-black bg-[#ebd4f3] shadow-[10px_10px_0px_0px_rgba(186,172,191,0.35)] transition-shadow duration-200 ease-linear group-hover:shadow-[5px_5px_0px_0px_rgba(186,172,191,0.35)] group-active:bg-white group-active:shadow-[inset_5px_5px_0px_0px_transparent]">
+                <Shell className="absolute left-[calc(50%-20px)] top-[calc(50%-20px)] h-[40px] w-[40px] text-[#380f0f]" />
+              </div>
+            </button>
+            <div
+              id="chart"
+              className="relative inline-block h-[576px] w-[576px]"
+            >
+              <div className="absolute left-0 top-0 z-[-1] h-[576px] w-[576px] rounded-full border border-black bg-white"></div>
+              <div className="absolute left-2 top-2 z-[-2] h-[576px] w-[576px] translate-x-[10px] translate-y-[10px] transform rounded-full border border-black bg-[#ebd4f3] shadow-[10px_10px_0px_0px_rgba(186,172,191,0.35)]"></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right side - Controls and Information */}
+        <div className="flex w-1/2 flex-col gap-6 p-8">
+          {/* Mode Button */}
+          <Button
+            className="absolute right-4 top-4 z-20"
+            variant="outline"
+            onClick={() => setShowHostModal(true)}
+          >
+            {isHostMode ? (
+              <>
+                <KeyRound className="h-4 w-4" />
+                <span>Chế độ chủ</span>
+              </>
+            ) : (
+              <>
+                <Eye className="h-4 w-4" />
+                <span>Chế độ xem</span>
+              </>
+            )}
+          </Button>
+          {/* Participant Input */}
+          <div className="flex flex-col gap-4">
+            <h2 className="text-2xl">Danh sách người tham gia</h2>
+            <Textarea
+              placeholder="Nhập tên người tham gia (mỗi người một dòng)"
+              value={participantInput}
+              onChange={(e) => setParticipantInput(e.target.value)}
+              className="h-48"
+              disabled={!isHostMode}
             />
-          </div>
-        </div>
-
-        <div className="relative">
-          <button
-            id="push"
-            className="group absolute left-1/2 top-1/2 z-10 h-[120px] w-[120px] -translate-x-1/2 -translate-y-1/2 transform"
-          >
-            <div className="absolute left-0 top-0 h-[100px] w-[100px] transform rounded-full border border-black bg-white transition-transform duration-200 ease-linear group-hover:translate-x-1 group-hover:translate-y-1 group-active:hidden">
-              <Shell className="absolute left-[calc(50%-20px)] top-[calc(50%-20px)] h-[40px] w-[40px] text-[#380f0f]" />
+            <div className="flex gap-4">
+              <button
+                onClick={handleParticipantInput}
+                className={`w-full rounded-md px-4 py-2 text-white ${
+                  isHostMode
+                    ? "bg-blue-500 hover:bg-blue-600"
+                    : "cursor-not-allowed bg-gray-400"
+                }`}
+                disabled={!isHostMode}
+              >
+                Cập nhật danh sách
+              </button>
             </div>
-            <div className="absolute left-2 top-2 z-[-1] h-[100px] w-[100px] rounded-full border border-black bg-[#ebd4f3] shadow-[10px_10px_0px_0px_rgba(186,172,191,0.35)] transition-shadow duration-200 ease-linear group-hover:shadow-[5px_5px_0px_0px_rgba(186,172,191,0.35)] group-active:bg-white group-active:shadow-[inset_5px_5px_0px_0px_transparent]">
-              <Shell className="absolute left-[calc(50%-20px)] top-[calc(50%-20px)] h-[40px] w-[40px] text-[#380f0f]" />
+          </div>
+
+          {/* Results Display */}
+          <div className="mt-4 rounded-lg border border-gray-200 p-4">
+            <div className="mb-4 text-2xl">KẾT QUẢ: {result}</div>
+            <div className="text-sm">
+              Số người còn lại: {availableParticipants.length}
             </div>
-          </button>
-          <div id="chart" className="relative inline-block h-[576px] w-[576px]">
-            <div className="absolute left-0 top-0 z-[-1] h-[576px] w-[576px] rounded-full border border-black bg-white"></div>
-            <div className="absolute left-2 top-2 z-[-2] h-[576px] w-[576px] translate-x-[10px] translate-y-[10px] transform rounded-full border border-black bg-[#ebd4f3] shadow-[10px_10px_0px_0px_rgba(186,172,191,0.35)]"></div>
           </div>
-        </div>
-      </div>
 
-      {/* Right side - Controls and Information */}
-      <div className="flex w-1/2 flex-col gap-6 p-8 tracking-widest">
-        <div className="flex flex-col gap-4">
-          <h2 className="text-2xl">Danh sách người tham gia</h2>
-          <Textarea
-            placeholder="Nhập tên người tham gia (mỗi người một dòng)"
-            value={participantInput}
-            onChange={(e) => setParticipantInput(e.target.value)}
-            className="h-48"
-          />
-          <div className="flex gap-4">
-            <button
-              onClick={handleParticipantInput}
-              className="w-full rounded-md bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-            >
-              Cập nhật danh sách
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-lg border border-gray-200 p-4">
-          <div className="mb-4 text-2xl">KẾT QUẢ: {result}</div>
-          <div className="text-sm">
-            Số người còn lại: {availableParticipants.length}
-          </div>
-        </div>
-
-        <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Lịch sử quay</h3>
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              {showHistory ? "Ẩn" : "Hiện"}
-            </button>
-          </div>
-          {showHistory && selectedParticipants.length > 0 && (
-            <div className="mt-2 space-y-2">
-              {selectedParticipants.map((participant, index) => (
-                <div
-                  key={participant.id}
-                  className="flex items-center justify-between gap-4"
-                >
-                  <span className="font-medium">
-                    {index + 1}. {participant.name}
-                  </span>
-                  {participant.selectedAt && (
-                    <span className="text-sm text-gray-500">
-                      {formatTime(participant.selectedAt)}
+          {/* History Section */}
+          <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Lịch sử quay</h3>
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                {showHistory ? "Ẩn" : "Hiện"}
+              </button>
+            </div>
+            {showHistory && selectedParticipants.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {selectedParticipants.map((participant, index) => (
+                  <div
+                    key={participant.id}
+                    className="flex items-center justify-between gap-4"
+                  >
+                    <span className="font-medium">
+                      {index + 1}. {participant.name}
                     </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                    {participant.selectedAt && (
+                      <span className="text-sm text-gray-500">
+                        {formatTime(participant.selectedAt)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Modals */}
+        {/* Modals */}
+        <HostModal
+          isOpen={showHostModal}
+          onOpenChange={setShowHostModal}
+          onHostAuthenticated={() => setIsHostMode(true)}
+          hostCode={hostCode}
+          setHostCode={setHostCode}
+        />
+        <WinnerModal
+          isOpen={showWinnerModal}
+          onOpenChange={setShowWinnerModal}
+          winner={currentWinner}
+          remainingParticipants={availableParticipants.length}
+          onClose={() => setShowGrandPrizeModal(true)}
+        />
+        <GrandPrizeModal
+          isOpen={showGrandPrizeModal}
+          onOpenChange={setShowGrandPrizeModal}
+          winner={availableParticipants[0]}
+        />
       </div>
-
-      {/* Winner Modal */}
-      <Dialog
-        open={showWinnerModal}
-        onOpenChange={(open) => {
-          setShowWinnerModal(open);
-          if (!open && availableParticipants.length === 1) {
-            setTimeout(() => {
-              setShowGrandPrizeModal(true);
-              handleGrandPrize(); // Play sound and trigger confetti for grand prize
-            }, 500);
-          }
-        }}
-      >
-        <DialogContent className="font-bangers tracking-widest sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle className="text-center text-4xl tracking-widest text-yellow-500">
-              🎉 Chúc mừng! 🎉
-            </DialogTitle>
-            <DialogDescription className="pt-6 text-center">
-              <div className="relative">
-                <div className="rounded-lg bg-gradient-to-r from-pink-200 via-purple-200 to-blue-200 p-8 uppercase">
-                  <div className="text-3xl font-bold uppercase text-purple-800">
-                    {currentWinner?.name}
-                  </div>
-                  <div className="mt-4 text-xl font-medium text-purple-600">
-                    đã được chọn!
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6 flex justify-center gap-4">
-                <span className="animate-bounce text-2xl">🎈</span>
-                <span className="animate-bounce text-2xl delay-100">🎁</span>
-                <span className="animate-bounce text-2xl delay-200">🎊</span>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
-
-      {/* Grand Prize Modal */}
-      <Dialog open={showGrandPrizeModal} onOpenChange={setShowGrandPrizeModal}>
-        <DialogContent className="font-bangers tracking-widest sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle className="text-center">
-              <div className="text-4xl tracking-widest text-yellow-500">
-                🌟 GIẢI ĐẶC BIỆT 🌟
-              </div>
-            </DialogTitle>
-            <DialogDescription className="pt-6 text-center">
-              <div className="relative">
-                <div className="rounded-lg bg-gradient-to-r from-yellow-200 via-yellow-100 to-yellow-200 p-8 uppercase">
-                  <div className="text-xl font-medium text-yellow-600">
-                    xin chúc mừng
-                  </div>
-                  <div className="mt-4 text-3xl font-bold uppercase text-red-500">
-                    {availableParticipants[0]?.name}
-                  </div>
-                  <div className="mt-4 text-xl font-medium text-yellow-600">
-                    may mắn trúng giải đặc biệt
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6 flex justify-center gap-4">
-                <span className="animate-bounce text-2xl">🏆</span>
-                <span className="animate-bounce text-2xl delay-100">👑</span>
-                <span className="animate-bounce text-2xl delay-200">💝</span>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
-    </div>
+      <Toaster richColors position="top-center" />
+    </>
   );
 };
 
