@@ -30,6 +30,7 @@ const HostModal = ({
       onHostAuthenticated();
       onOpenChange(false);
       toast.success("Đã kích hoạt host!");
+      setHostCode("");
     } else {
       toast.warning("Mã không đúng!");
     }
