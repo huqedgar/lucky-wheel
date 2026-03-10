@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
-const HOST_CODE = "2025"
+const HOST_CODE = process.env.NEXT_PUBLIC_HOST_CODE ?? "2026";
 
 interface HostModalProps {
-  isOpen: boolean
-  onOpenChange: (open: boolean) => void
-  onHostAuthenticated: () => void
-  hostCode: string
-  setHostCode: (code: string) => void
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onHostAuthenticated: () => void;
+  hostCode: string;
+  setHostCode: (code: string) => void;
 }
 
 const HostModal = ({
@@ -24,14 +24,14 @@ const HostModal = ({
 }: HostModalProps) => {
   const handleHostCodeSubmit = () => {
     if (hostCode === HOST_CODE) {
-      onHostAuthenticated()
-      onOpenChange(false)
-      toast.success("Đã kích hoạt host!")
-      setHostCode("")
+      onHostAuthenticated();
+      onOpenChange(false);
+      toast.success("Đã kích hoạt host!");
+      setHostCode("");
     } else {
-      toast.warning("Mã không đúng!")
+      toast.warning("Mã không đúng!");
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -50,7 +50,7 @@ const HostModal = ({
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default HostModal
+export default HostModal;

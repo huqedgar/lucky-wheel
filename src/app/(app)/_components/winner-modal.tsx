@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import type { Participant } from "@/types/participant.type"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
+import type { Participant } from "@/types/participant.type";
 
 interface WinnerModalProps {
-  isOpen: boolean
-  onOpenChange: (open: boolean) => void
-  winner: Participant | null
-  remainingParticipants: number
-  onClose: () => void
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  winner: Participant | null;
+  remainingParticipants: number;
+  onClose: () => void;
 }
 
 const WinnerModal = ({
@@ -28,9 +28,9 @@ const WinnerModal = ({
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        onOpenChange(open)
+        onOpenChange(open);
         if (!open && remainingParticipants === 1) {
-          setTimeout(onClose, 500)
+          setTimeout(onClose, 500);
         }
       }}
     >
@@ -39,10 +39,10 @@ const WinnerModal = ({
           <DialogTitle className="text-center text-4xl text-yellow-500">
             🎉 Chúc mừng! 🎉
           </DialogTitle>
-          <DialogDescription className="pt-6 text-center">
+          <DialogDescription render={<div />} className="pt-6 text-center">
             <div className="relative">
               <div className="rounded-lg bg-gradient-to-r from-pink-200 via-purple-200 to-blue-200 p-8 uppercase">
-                <div className="text-3xl font-bold uppercase text-purple-800">{winner?.name}</div>
+                <div className="text-3xl font-bold text-purple-800 uppercase">{winner?.name}</div>
                 <div className="mt-4 text-xl font-medium text-purple-600">đã được chọn!</div>
               </div>
             </div>
@@ -55,7 +55,7 @@ const WinnerModal = ({
         </DialogHeader>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default WinnerModal
+export default WinnerModal;

@@ -50,7 +50,7 @@ const config = {
   importOrderTypeScriptVersion: "5.9.3",
 
   // ==================== TAILWIND CONFIG ====================
-  tailwindStylesheet: "./src/app/[locale]/globals.css",
+  tailwindStylesheet: "./src/app/globals.css",
   tailwindFunctions: ["clsx", "cva", "cn"],
 
   // ==================== PLUGINS ====================

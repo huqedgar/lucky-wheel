@@ -1,5 +1,5 @@
-import WheelComponent from "./_components/wheel-component"
+import WheelComponent from "./_components/wheel-component";
 
 export default function HomePage() {
-  return <WheelComponent />
+  return <WheelComponent />;
 }
