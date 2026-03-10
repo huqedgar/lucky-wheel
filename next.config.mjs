@@ -1,12 +1,4 @@
-import createNextIntlPlugin from "next-intl/plugin";
 import NextBundleAnalyzer from "@next/bundle-analyzer";
-
-const withNextIntl = createNextIntlPlugin({
-  requestConfig: "./src/i18n/request.ts",
-  experimental: {
-    createMessagesDeclaration: "./messages/vi.json",
-  },
-});
 
 const withBundleAnalyzer = NextBundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
@@ -29,4 +21,4 @@ const nextConfig = {
   },
 };
 
-export default withBundleAnalyzer(withNextIntl(nextConfig));
+export default withBundleAnalyzer(nextConfig);

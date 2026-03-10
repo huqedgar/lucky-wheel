@@ -10,12 +10,8 @@
     },
     "supabase": {
       "type": "http",
-      "url": "https://mcp.supabase.com/mcp?project_ref=wyjkvpwmqxcnccyzpucj",
+      "url": "https://mcp.supabase.com/mcp?project_ref=fggusaxghgmgtqfgoauw",
       "description": "Supabase database operations"
-    },
-    "tanstack": {
-      "command": "cmd",
-      "args": ["/c", "npx", "-y", "@tanstack/cli", "mcp"]
     },
     "memory": {
       "command": "cmd",
