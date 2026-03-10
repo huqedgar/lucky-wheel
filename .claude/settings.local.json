@@ -86,7 +86,8 @@
       "Bash(cd \"C:/Users/vhung/Downloads/lucky-wheel\" && pnpm remove @dnd-kit/core @dnd-kit/modifiers @dnd-kit/sortable @dnd-kit/utilities @tanstack/react-form @tanstack/react-form-nextjs @tanstack/react-table class-variance-authority cmdk date-fns dompurify embla-carousel-react input-otp motion next-intl nextjs-toploader nuqs query-string react-day-picker react-dropzone react-medium-image-zoom react-pdf react-resizable-panels recharts usehooks-ts vaul xlsx zod zustand @tanstack/eslint-plugin-query 2>&1 | tail -10)",
       "Bash(cd \"C:/Users/vhung/Downloads/lucky-wheel\" && pnpm remove @tanstack/react-query @tanstack/react-query-devtools nuqs 2>&1 | tail -5)",
       "Bash(cd \"C:/Users/vhung/Downloads/lucky-wheel\" && pnpm remove @tanstack/react-query @tanstack/react-query-devtools 2>&1 | tail -5)",
-      "Bash(cd \"C:/Users/vhung/Downloads/lucky-wheel\" && rm -rf .next && pnpm build 2>&1)"
+      "Bash(cd \"C:/Users/vhung/Downloads/lucky-wheel\" && rm -rf .next && pnpm build 2>&1)",
+      "Bash(pnpm typecheck:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

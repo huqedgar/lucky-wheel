@@ -1,16 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { IconEye, IconKey, IconPropeller, IconUsers } from "@tabler/icons-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { IconEye, IconKey, IconPropeller, IconSettings, IconUsers } from "@tabler/icons-react";
 import confetti from "canvas-confetti";
 import * as d3 from "d3";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/supabase/clients/browser";
 import type { Participant } from "@/types/participant.type";
 import GrandPrizeModal from "./grand-prize-modal";
+import SettingsModal, { getPredeterminedNames } from "./settings-modal";
 import HostModal from "./host-modal";
 import WinnerModal from "./winner-modal";
 
@@ -62,7 +62,8 @@ const WheelComponent = () => {
   // =============== State Management ===============
   const [wheelSize, setWheelSize] = useState(576);
   const [showHostModal, setShowHostModal] = useState(false);
-  const [showExcludeInput, setShowExcludeInput] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showSettingsButton, setShowSettingsButton] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const [showWinnerModal, setShowWinnerModal] = useState(false);
   const [showGrandPrizeModal, setShowGrandPrizeModal] = useState(false);
@@ -70,8 +71,9 @@ const WheelComponent = () => {
 
   const [hostCode, setHostCode] = useState("");
   const [isHostMode, setIsHostMode] = useState(false);
-  const [excludedName, setExcludedName] = useState("BS.CKII NGUYỄN THỊ THU HIỀN");
   const [participantInput, setParticipantInput] = useState("");
+  const [predeterminedNames, setPredeterminedNames] = useState<string[]>([]);
+  const [selectedPredetermined, setSelectedPredetermined] = useState<Set<string>>(new Set());
 
   const [availableParticipants, setAvailableParticipants] = useState<Participant[]>([]);
   const [selectedParticipants, setSelectedParticipants] = useState<Participant[]>([]);
@@ -79,16 +81,33 @@ const WheelComponent = () => {
   const [result, setResult] = useState("");
   const [currentWinner, setCurrentWinner] = useState<Participant | null>(null);
 
-  // =============== SSR-safe wheel size ===============
+  // =============== SSR-safe wheel size + localStorage ===============
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setWheelSize(getWheelSize());
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPredeterminedNames(getPredeterminedNames());
     const handleResize = () => setWheelSize(getWheelSize());
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const wheelDimensions = getWheelDimensions(wheelSize);
+
+  // =============== Computed Values ===============
+  const remainingPredetermined = useMemo(() => {
+    const availableNamesLower = new Set(availableParticipants.map((p) => p.name.trim().toLowerCase()));
+    return predeterminedNames.filter(
+      (name) =>
+        availableNamesLower.has(name.trim().toLowerCase()) &&
+        !selectedPredetermined.has(name.trim().toLowerCase()),
+    );
+  }, [predeterminedNames, availableParticipants, selectedPredetermined]);
+
+  const reloadPredetermined = useCallback(() => {
+    setPredeterminedNames(getPredeterminedNames());
+    setSelectedPredetermined(new Set());
+  }, []);
 
   // =============== Utility Functions ===============
   const getRandomInt = useCallback((min: number, max: number): number => {
@@ -209,9 +228,20 @@ const WheelComponent = () => {
     }
 
     let randomAssetIndex: number;
-    do {
+    if (remainingPredetermined.length > 0) {
+      const targetName = remainingPredetermined[getRandomInt(0, remainingPredetermined.length)];
+      const targetIndex = availableParticipants.findIndex(
+        (p) => p.name.trim().toLowerCase() === targetName.trim().toLowerCase(),
+      );
+      if (targetIndex !== -1) {
+        randomAssetIndex = targetIndex;
+        setSelectedPredetermined((prev) => new Set(prev).add(targetName.trim().toLowerCase()));
+      } else {
+        randomAssetIndex = getRandomInt(0, availableParticipants.length);
+      }
+    } else {
       randomAssetIndex = getRandomInt(0, availableParticipants.length);
-    } while (excludedName && availableParticipants[randomAssetIndex].name === excludedName);
+    }
 
     const piedegree = 360 / availableParticipants.length;
     const randomPieMovement = getRandomInt(1, piedegree);
@@ -238,7 +268,7 @@ const WheelComponent = () => {
       console.error("Error broadcasting spin:", error);
       toast.error("Lỗi khi quay");
     }
-  }, [availableParticipants, excludedName, getRandomInt, isHostMode]);
+  }, [availableParticipants, remainingPredetermined, getRandomInt, isHostMode]);
 
   const renderWheel = useCallback(() => {
     d3.select("#chart").select("svg").remove();
@@ -330,6 +360,11 @@ const WheelComponent = () => {
 
       await supabase.from("participants").insert(newParticipants);
 
+      setAvailableParticipants(newParticipants);
+      setSelectedParticipants([]);
+      setSelectedPredetermined(new Set());
+      setResult("");
+
       await supabase.channel("participant-update").send({
         type: "broadcast",
         event: "update",
@@ -360,6 +395,7 @@ const WheelComponent = () => {
       setParticipantInput("");
       setAvailableParticipants([]);
       setSelectedParticipants([]);
+      setSelectedPredetermined(new Set());
       setResult("");
       setCurrentWinner(null);
       renderWheel();
@@ -448,7 +484,11 @@ const WheelComponent = () => {
         { event: "*", schema: "public", table: "participants" },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setAvailableParticipants((prev) => [...prev, payload.new as Participant]);
+            const newParticipant = payload.new as Participant;
+            setAvailableParticipants((prev) => {
+              if (prev.some((p) => p.id === newParticipant.id)) return prev;
+              return [...prev, newParticipant];
+            });
           } else if (payload.eventType === "DELETE") {
             setAvailableParticipants((prev) => prev.filter((p) => p.id !== payload.old.id));
           }
@@ -461,7 +501,13 @@ const WheelComponent = () => {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "selected_participants" },
-        (payload) => setSelectedParticipants((prev) => [...prev, payload.new as Participant]),
+        (payload) => {
+          const newSelected = payload.new as Participant;
+          setSelectedParticipants((prev) => {
+            if (prev.some((p) => p.id === newSelected.id)) return prev;
+            return [...prev, newSelected];
+          });
+        },
       )
       .subscribe();
 
@@ -482,11 +528,12 @@ const WheelComponent = () => {
       .subscribe();
 
     const clearChannel = supabase
-      .channel("clear-state", { config: { broadcast: { self: true } } })
+      .channel("clear-state")
       .on("broadcast", { event: "clear" }, () => {
         setParticipantInput("");
         setAvailableParticipants([]);
         setSelectedParticipants([]);
+        setSelectedPredetermined(new Set());
         setResult("");
         setCurrentWinner(null);
         renderWheel();
@@ -495,12 +542,13 @@ const WheelComponent = () => {
       .subscribe();
 
     const participantUpdateChannel = supabase
-      .channel("participant-update", { config: { broadcast: { self: true } } })
+      .channel("participant-update")
       .on("broadcast", { event: "update" }, (payload) => {
         const { participants } = payload.payload;
         setAvailableParticipants(participants);
         setParticipantInput(participants.map((item: Participant) => item.name).join("\n"));
         setSelectedParticipants([]);
+        setSelectedPredetermined(new Set());
         setResult("");
         renderWheel();
         toast.info("Danh sách người chơi đã được cập nhật");
@@ -539,29 +587,6 @@ const WheelComponent = () => {
           <IconUsers className="h-5 w-5" />
           <span>{onlineUsers.length} online</span>
         </div>
-
-        {/* Exclude Input */}
-        {isHostMode && (
-          <div
-            className="absolute top-4 right-4 z-20"
-            onMouseEnter={() => setShowExcludeInput(true)}
-            onMouseLeave={() => setShowExcludeInput(false)}
-          >
-            <div
-              className={`transition-all duration-300 ${
-                showExcludeInput ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              <Input
-                type="text"
-                placeholder="Nhập tên người cần tránh"
-                value={excludedName}
-                onChange={(e) => setExcludedName(e.target.value)}
-                className="w-64"
-              />
-            </div>
-          </div>
-        )}
 
         {/* Wheel */}
         <div className="relative mx-auto aspect-square w-full max-w-100 md:max-w-xl">
@@ -607,6 +632,32 @@ const WheelComponent = () => {
             </>
           )}
         </Button>
+
+        {/* Settings Button (hover-reveal, host only) */}
+        {isHostMode && (
+          <div
+            className="absolute bottom-4 right-4"
+            onMouseEnter={() => setShowSettingsButton(true)}
+            onMouseLeave={() => setShowSettingsButton(false)}
+          >
+            <div
+              className={`relative transition-all duration-300 ${showSettingsButton ? "opacity-100" : "opacity-0"}`}
+            >
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowSettingsModal(true)}
+              >
+                <IconSettings className="h-4 w-4" />
+              </Button>
+              {remainingPredetermined.length > 0 && (
+                <div className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                  {remainingPredetermined.length}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Participant Input */}
         <div className="flex flex-col gap-4">
@@ -687,6 +738,13 @@ const WheelComponent = () => {
         isOpen={showGrandPrizeModal}
         onOpenChange={setShowGrandPrizeModal}
         winner={availableParticipants[0]}
+      />
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onOpenChange={setShowSettingsModal}
+        onSaved={reloadPredetermined}
+        remainingPredeterminedCount={remainingPredetermined.length}
+        totalPredeterminedCount={predeterminedNames.length}
       />
     </div>
   );
