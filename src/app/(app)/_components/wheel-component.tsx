@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/supabase/clients/browser";
 import type { Participant } from "@/types/participant.type";
 import GrandPrizeModal from "./grand-prize-modal";
-import SettingsModal, { getPredeterminedNames } from "./settings-modal";
 import HostModal from "./host-modal";
+import SettingsModal, { getPredeterminedNames } from "./settings-modal";
 import WinnerModal from "./winner-modal";
 
 // =============== Types ===============
@@ -85,7 +85,6 @@ const WheelComponent = () => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setWheelSize(getWheelSize());
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPredeterminedNames(getPredeterminedNames());
     const handleResize = () => setWheelSize(getWheelSize());
     window.addEventListener("resize", handleResize);
@@ -96,7 +95,9 @@ const WheelComponent = () => {
 
   // =============== Computed Values ===============
   const remainingPredetermined = useMemo(() => {
-    const availableNamesLower = new Set(availableParticipants.map((p) => p.name.trim().toLowerCase()));
+    const availableNamesLower = new Set(
+      availableParticipants.map((p) => p.name.trim().toLowerCase()),
+    );
     return predeterminedNames.filter(
       (name) =>
         availableNamesLower.has(name.trim().toLowerCase()) &&
@@ -636,18 +637,14 @@ const WheelComponent = () => {
         {/* Settings Button (hover-reveal, host only) */}
         {isHostMode && (
           <div
-            className="absolute bottom-4 right-4"
+            className="absolute right-4 bottom-4"
             onMouseEnter={() => setShowSettingsButton(true)}
             onMouseLeave={() => setShowSettingsButton(false)}
           >
             <div
               className={`relative transition-all duration-300 ${showSettingsButton ? "opacity-100" : "opacity-0"}`}
             >
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowSettingsModal(true)}
-              >
+              <Button variant="outline" size="icon" onClick={() => setShowSettingsModal(true)}>
                 <IconSettings className="h-4 w-4" />
               </Button>
               {remainingPredetermined.length > 0 && (

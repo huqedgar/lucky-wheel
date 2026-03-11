@@ -25,7 +25,7 @@ const GrandPrizeModal = ({ isOpen, onOpenChange, winner }: GrandPrizeModalProps)
           </DialogTitle>
           <DialogDescription render={<div />} className="pt-6 text-center">
             <div className="relative">
-              <div className="rounded-lg bg-gradient-to-r from-yellow-200 via-yellow-100 to-yellow-200 p-8 uppercase">
+              <div className="rounded-lg bg-linear-to-r from-yellow-200 via-yellow-100 to-yellow-200 p-8 uppercase">
                 <div className="text-xl font-medium text-yellow-600">xin chúc mừng</div>
                 <div className="mt-4 text-3xl font-bold text-red-500 uppercase">{winner?.name}</div>
                 <div className="mt-4 text-xl font-medium text-yellow-600">

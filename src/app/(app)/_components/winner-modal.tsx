@@ -41,7 +41,7 @@ const WinnerModal = ({
           </DialogTitle>
           <DialogDescription render={<div />} className="pt-6 text-center">
             <div className="relative">
-              <div className="rounded-lg bg-gradient-to-r from-pink-200 via-purple-200 to-blue-200 p-8 uppercase">
+              <div className="rounded-lg bg-linear-to-r from-pink-200 via-purple-200 to-blue-200 p-8 uppercase">
                 <div className="text-3xl font-bold text-purple-800 uppercase">{winner?.name}</div>
                 <div className="mt-4 text-xl font-medium text-purple-600">đã được chọn!</div>
               </div>
